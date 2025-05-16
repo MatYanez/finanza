@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>App de Gastos - Prometeo Sandbox</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #transacciones {
+            margin-top: 20px;
+        }
+        .transaccion {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        input {
+            margin-top: 5px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mis Gastos (Sandbox)</h1>
+    <button onclick="cargarTransacciones()">Cargar Transacciones</button>
+    <div id="transacciones"></div>
+
+    <script>
+        async function cargarTransacciones() {
+            const apiKey = "y6ztGumBmEQTMExM5EGRsazE1CTKUhRYBrVzf4XwD8Ptp7QW5qqtNXsxErs69kO7";
+
+            try {
+                const cuentas = await fetch("https://sandbox.prometeoapi.com/accounts/", {
+                    headers: {
+                        "X-API-Key": apiKey,
+                        "Content-Type": "application/json"
+                    }
+                }).then(res => res.json());
+
+                const accountId = cuentas?.data?.[0]?.id;
+                if (!accountId) {
+                    document.getElementById("transacciones").innerHTML = "No se encontraron cuentas.";
+                    return;
+                }
+
+                const transacciones = await fetch(`https://sandbox.prometeoapi.com/transactions/?account_id=${accountId}`, {
+                    headers: {
+                        "X-API-Key": apiKey,
+                        "Content-Type": "application/json"
+                    }
+                }).then(res => res.json());
+
+                const contenedor = document.getElementById("transacciones");
+                contenedor.innerHTML = "<h2>Transacciones</h2>";
+
+                transacciones?.data?.forEach(tx => {
+                    const div = document.createElement("div");
+                    div.className = "transaccion";
+                    const categoriaGuardada = localStorage.getItem("categoria_" + tx.id) || "";
+                    div.innerHTML = `
+                        <strong>${tx.description}</strong><br>
+                        Fecha: ${tx.date}<br>
+                        Monto: ${tx.amount} ${tx.currency}<br>
+                        <label>Categoría: <input type="text" value="${categoriaGuardada}" onchange="guardarCategoria('${tx.id}', this.value)"></label>
+                    `;
+                    contenedor.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error("Error al cargar transacciones:", error);
+                document.getElementById("transacciones").innerHTML = "Error al conectar con Prometeo.";
+            }
+        }
+
+        function guardarCategoria(id, categoria) {
+            localStorage.setItem("categoria_" + id, categoria);
+            console.log("Guardada categoría", categoria, "para", id);
+        }
+    </script>
+</body>
+</html>
